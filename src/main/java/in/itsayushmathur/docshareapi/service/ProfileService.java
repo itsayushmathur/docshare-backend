@@ -61,4 +61,11 @@ public class ProfileService {
     public boolean existsByClerkId(String clerkId) {
         return profileRepository.existsByClerkId(clerkId);
     }
+
+    public void deleteProfile(String clerkId){
+        ProfileDocument existingProfile = profileRepository.findByClerkId(clerkId);
+        if(existingProfile !=null){
+            profileRepository.delete(existingProfile);
+        }
+    }
 }
