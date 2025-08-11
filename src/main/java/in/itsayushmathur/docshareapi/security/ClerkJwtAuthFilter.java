@@ -24,22 +24,32 @@ import java.util.Collections;
 @Component
 @RequiredArgsConstructor
 public class ClerkJwtAuthFilter extends OncePerRequestFilter {
+
     @Value("${clerk.issuer}")
-    private String clerkIssuer ;
+    private String clerkIssuer;
 
     private final ClerkJwksProvider jwksProvider;
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        if(request.getRequestURI().contains("/webhooks")){
-            filterChain.doFilter(request,response);
-        }
-        String authHeader = request.getHeader("Authorization");
-        if(authHeader == null || authHeader.startsWith("Bearer ")){
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Authorization header missing/invalid.");
+        // For webhook endpoints, skip JWT validation and continue the filter chain
+        if (request.getRequestURI().contains("/webhooks") ||
+                request.getRequestURI().contains("/public") ||
+                request.getRequestURI().contains("/download") ||
+                request.getRequestURI().contains("/health")) {
+            filterChain.doFilter(request, response);
             return;
         }
+
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Authorization header missing/invalid");
+            return;
+        }
+
         try {
             String token = authHeader.substring(7);
             String[] chunks = token.split("\\.");
@@ -80,8 +90,6 @@ public class ClerkJwtAuthFilter extends OncePerRequestFilter {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid JWT token: "+e.getMessage());
             return;
         }
+
     }
-
-
-
 }
